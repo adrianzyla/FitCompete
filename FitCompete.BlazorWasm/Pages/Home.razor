@@ -1,7 +1,115 @@
 ﻿@page "/"
+@inject IChallengeHttpService AppService
+@inject NavigationManager NavigationManager
+@inject ILogger<Home> Logger // Wstrzykujemy loggera do debugowania
 
-<PageTitle>Home</PageTitle>
+<PageTitle>FitCompete - Dashboard</PageTitle>
 
-<h1>Hello, world!</h1>
+<MudContainer MaxWidth="MaxWidth.ExtraLarge">
+    <MudText Typo="Typo.h3" GutterBottom="true">Dashboard</MudText>
+    <MudText Typo="Typo.h6" Color="Color.Dark" Class="mb-6">Przeglądaj wyzwania i śledź najlepsze wyniki!</MudText>
 
-Welcome to your new app.
+    @if (_isLoading)
+    {
+        <MudProgressLinear Color="Color.Primary" Indeterminate="true" Class="my-7" />
+    }
+    else if (_errorLoading)
+    {
+        <MudAlert Severity="Severity.Error">Wystąpił błąd podczas ładowania danych z API. Sprawdź konsolę przeglądarki (F12), aby zobaczyć szczegóły.</MudAlert>
+    }
+    else
+    {
+        @* Reszta UI (MudGrid, etc.) bez zmian *@
+        <MudGrid Spacing="4">
+            <MudItem xs="12" md="7">
+                <MudText Typo="Typo.h5" GutterBottom="true">Dostępne Wyzwania</MudText>
+                <MudList T="string" Clickable="true">
+                    @if (_challenges != null)
+                    {
+                        @foreach (var challenge in _challenges)
+                        {
+                            <MudListItem T="string" OnClick="@(() => NavigationManager.NavigateTo($"/challenges/{challenge.ChallengeId}"))">
+                                <div class="d-flex align-center">
+                                    <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Color="Color.Primary" Class="mr-3" />
+                                    <div class="flex-grow-1">
+                                        <MudText>@challenge.Name</MudText>
+                                        <MudText Typo="Typo.body2" Color="Color.Dark">Kategoria: @challenge.CategoryName</MudText>
+                                    </div>
+                                    <MudChip T="string" Color="Color.Secondary" Size="Size.Small">@challenge.UnitOfMeasure</MudChip>
+                                </div>
+                            </MudListItem>
+                            <MudDivider />
+                        }
+                    }
+                </MudList>
+            </MudItem>
+
+            <MudItem xs="12" md="5">
+                <MudText Typo="Typo.h5" GutterBottom="true">Top 3: @_topRankingChallengeName</MudText>
+                @if (_topRanking != null && _topRanking.Any())
+                {
+                    <MudList T="string">
+                        @foreach (var entry in _topRanking)
+                        {
+                            <MudListItem T="string" OnClick="@(() => GoToAttemptDetails(entry.AttemptId))">
+                                <div class="d-flex align-center">
+                                    <MudAvatar Color="Color.Secondary">@(_topRanking.IndexOf(entry) + 1)</MudAvatar>
+                                    <div class="ml-3 flex-grow-1">
+                                        <MudText><strong>@entry.UserName</strong></MudText>
+                                        <MudText Typo="Typo.body2">Wynik: @entry.ResultValue</MudText>
+                                    </div>
+                                    <MudIcon Icon="@Icons.Material.Filled.ChevronRight" />
+                                </div>
+                            </MudListItem>
+                        }
+                    </MudList>
+                }
+                else
+                {
+                    <MudText>Brak wyników dla tego wyzwania.</MudText>
+                }
+            </MudItem>
+        </MudGrid>
+    }
+</MudContainer>
+
+@code {
+    private bool _isLoading = true;
+    private bool _errorLoading = false;
+    private List<ChallengeDto>? _challenges;
+    private List<RankingEntryDto>? _topRanking;
+    private string _topRankingChallengeName = "Brak";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _isLoading = true;
+        try
+        {
+            var challengesList = await AppService.GetAllChallengesAsync();
+            _challenges = challengesList?.ToList();
+
+            if (_challenges != null && _challenges.Any())
+            {
+                var firstChallenge = _challenges.First();
+                _topRankingChallengeName = firstChallenge.Name;
+                var fullRanking = await AppService.GetRankingAsync(firstChallenge.ChallengeId);
+                _topRanking = fullRanking?.Take(3).ToList();
+            }
+        }
+        catch (Exception ex)
+        {
+            // Logujemy błąd do konsoli przeglądarki
+            Logger.LogError(ex, "Krytyczny błąd podczas inicjalizacji strony Home.razor");
+            _errorLoading = true; // Ustawiamy flagę błędu
+        }
+        finally
+        {
+            _isLoading = false; // Ta linia ZAWSZE się wykona
+        }
+    }
+
+    private void GoToAttemptDetails(int attemptId)
+    {
+        NavigationManager.NavigateTo($"/attempts/{attemptId}");
+    }
+}

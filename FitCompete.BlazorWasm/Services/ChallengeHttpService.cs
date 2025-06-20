@@ -154,6 +154,41 @@ namespace FitCompete.BlazorWasm.Services
             catch (Exception ex) { _logger.LogError(ex, "Error updating achievement {id}.", id); }
         }
 
+        public async Task<RankingEntryDto?> GetAttemptByIdAsync(int attemptId)
+        {
+            // Ten endpoint nie istnieje jeszcze w API, ale dodamy go w następnym kroku.
+            // Na razie zakładamy, że będzie on wyglądał tak:
+            try
+            {
+                // To jest uproszczenie. W realnej aplikacji byłby dedykowany endpoint.
+                // Tutaj symulujemy jego działanie.
+                // UWAGA: Ten kod nie zadziała, dopóki nie dodamy endpointu w API.
+                // Jest to celowo pokazane, by zilustrować potrzebę rozbudowy API.
+                // W finalnej wersji ten kod będzie wyglądał inaczej.
+                // Na razie zwrócimy null.
+                await Task.Delay(10); // Symulacja opóźnienia
+                _logger.LogWarning("Endpoint /api/challengeattempts/{id} nie jest zaimplementowany. Zwracam null.", attemptId);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching attempt by id {id}.", attemptId);
+                return null;
+            }
+        }
+        public async Task<IEnumerable<RankingEntryDto>?> GetRankingAsync(int challengeId)
+        {
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<IEnumerable<RankingEntryDto>>($"api/challenges/{challengeId}/ranking");
+            }
+            catch (Exception ex)
+            {
+                // W WASM logowanie trafia do konsoli przeglądarki
+                _logger.LogError(ex, "Error fetching ranking for challenge {id}.", challengeId);
+                return null;
+            }
+        }
 
     }
 }

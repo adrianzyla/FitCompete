@@ -20,6 +20,6 @@ namespace FitCompete.BlazorServer.Services
         Task DeleteAchievementAsync(int id);
         Task UpdateAchievementAsync(int id, AchievementUpdateDto dto);
         Task<IEnumerable<RankingEntryDto>?> GetRankingAsync(int challengeId);
-
+        Task<DashboardStatsDto?> GetDashboardStatsAsync();
     }
 }

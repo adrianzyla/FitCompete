@@ -39,6 +39,7 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(FitCompete.Infrastructure.Persistence.Repositories.GenericRepository<>));
 builder.Services.AddScoped<IAchievementService, AchievementService>();
 builder.Services.AddScoped<IChallengeService, ChallengeService>();
+builder.Services.AddScoped<IStatisticsService, StatisticsService>();
 builder.Services.AddScoped<IChallengeAttemptService, ChallengeAttemptService>(); // DODAJ TÊ LINIÊ
 builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 

@@ -166,5 +166,19 @@ namespace FitCompete.BlazorServer.Services
             }
         }
 
+        public async Task<DashboardStatsDto?> GetDashboardStatsAsync()
+        {
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<DashboardStatsDto>("api/statistics/dashboard");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching dashboard stats.");
+                return null;
+            }
+        }
+
+
     }
 }

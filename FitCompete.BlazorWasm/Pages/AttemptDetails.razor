@@ -1,0 +1,59 @@
+﻿@page "/attempts/{AttemptId:int}"
+@inject IChallengeHttpService AppService
+
+<PageTitle>Szczegóły Wyniku</PageTitle>
+
+@if (_attempt == null)
+{
+    <MudText>Ładowanie szczegółów wyniku...</MudText>
+    <MudProgressLinear Color="Color.Primary" Indeterminate="true" />
+}
+else
+{
+    <MudCard Elevation="3">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5">Wynik użytkownika: @_attempt.UserName</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudSimpleTable>
+                <tbody>
+                    <tr>
+                        <td><MudText><strong>Wynik:</strong></MudText></td>
+                        <td><MudText>@_attempt.ResultValue</MudText></td>
+                    </tr>
+                    <tr>
+                        <td><MudText><strong>Data:</strong></MudText></td>
+                        <td><MudText>@_attempt.AttemptDate.ToString("g")</MudText></td>
+                    </tr>
+                </tbody>
+            </MudSimpleTable>
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton Variant="Variant.Text" Href="/">Wróć do pulpitu</MudButton>
+        </MudCardActions>
+    </MudCard>
+}
+
+@code {
+    [Parameter]
+    public int AttemptId { get; set; }
+
+    private RankingEntryDto? _attempt;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _attempt = await AppService.GetAttemptByIdAsync(AttemptId);
+
+        if (_attempt == null)
+        {
+            _attempt = new RankingEntryDto
+                {
+                    UserName = "Test User",
+                    ResultValue = 123,
+                    AttemptDate = DateTime.Now
+                };
+        }
+    }
+}
