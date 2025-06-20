@@ -1,0 +1,88 @@
+﻿@page "/achievements-admin"
+@inject IChallengeHttpService AppService
+@inject ISnackbar Snackbar
+
+<PageTitle>Zarządzaj Osiągnięciami</PageTitle>
+<MudText Typo="Typo.h4" GutterBottom="true">Panel Zarządzania Osiągnięciami</MudText>
+
+<MudPaper Class="pa-4 mb-4">
+    <EditForm Model="_newAchievement" OnValidSubmit="HandleCreateAchievement">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_newAchievement.Name" For="@(() => _newAchievement.Name)" Label="Nazwa Osiągnięcia" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_newAchievement.BadgeImageUrl" For="@(() => _newAchievement.BadgeImageUrl)" Label="URL obrazka odznaki" /></MudItem>
+            <MudItem xs="12"><MudTextField @bind-Value="_newAchievement.Description" For="@(() => _newAchievement.Description)" Label="Opis" Lines="3" /></MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="int" @bind-Value="_newAchievement.ChallengeId" For="@(() => _newAchievement.ChallengeId)" Label="Powiązane wyzwanie">
+                    @if (_challenges != null)
+                    {
+                        @foreach (var challenge in _challenges)
+                        {
+                            <MudSelectItem Value="challenge.ChallengeId">@challenge.Name</MudSelectItem>
+                        }
+                    }
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4">
+                <MudSelect T="FitCompete.SharedKernel.Enums.AchievementCondition" @bind-Value="_newAchievement.Condition" For="@(() => _newAchievement.Condition)" Label="Warunek">
+                    <MudSelectItem Value="AchievementCondition.LessThan">Mniej niż</MudSelectItem>
+                    <MudSelectItem Value="AchievementCondition.GreaterThan">Więcej niż</MudSelectItem>
+                </MudSelect>
+            </MudItem>
+            <MudItem xs="12" sm="4"><MudNumericField @bind-Value="_newAchievement.ThresholdValue" For="@(() => _newAchievement.ThresholdValue)" Label="Wartość progowa" /></MudItem>
+        </MudGrid>
+        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="mt-4">Dodaj Osiągnięcie</MudButton>
+    </EditForm>
+</MudPaper>
+
+<MudTable Items="@_achievements" Hover="true">
+    <HeaderContent>
+        <MudTh>Nazwa</MudTh>
+        <MudTh>Wyzwanie</MudTh>
+        <MudTh>Warunek</MudTh>
+        <MudTh></MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="Nazwa">@context.Name</MudTd>
+        <MudTd DataLabel="Wyzwanie">@(_challenges?.FirstOrDefault(c => c.ChallengeId == context.ChallengeId)?.Name)</MudTd>
+        <MudTd DataLabel="Warunek">@context.Condition @context.ThresholdValue</MudTd>
+        <MudTd><MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="@(async () => await DeleteAchievement(context.AchievementId))" /></MudTd>
+    </RowTemplate>
+</MudTable>
+
+@code {
+    private IEnumerable<AchievementDto>? _achievements;
+    private IEnumerable<ChallengeDto>? _challenges;
+    private AchievementCreateDto _newAchievement = new();
+
+    protected override async Task OnInitializedAsync() => await LoadData();
+
+    private async Task LoadData()
+    {
+        _achievements = await AppService.GetAllAchievementsAsync();
+        _challenges = await AppService.GetAllChallengesAsync();
+        StateHasChanged();
+    }
+
+    private async Task HandleCreateAchievement()
+    {
+        var result = await AppService.CreateAchievementAsync(_newAchievement);
+        if (result != null)
+        {
+            Snackbar.Add("Dodano osiągnięcie!", Severity.Success);
+            _newAchievement = new();
+            await LoadData();
+        }
+        else
+        {
+            Snackbar.Add("Błąd podczas dodawania.", Severity.Error);
+        }
+    }
+
+    private async Task DeleteAchievement(int id)
+    {
+        await AppService.DeleteAchievementAsync(id);
+        Snackbar.Add("Usunięto osiągnięcie.", Severity.Info);
+        await LoadData();
+    }
+}

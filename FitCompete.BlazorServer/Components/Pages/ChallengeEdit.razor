@@ -1,0 +1,79 @@
+﻿@page "/challenges/edit/{ChallengeId:int}"
+@inject IChallengeHttpService ChallengeService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Edytuj Wyzwanie</PageTitle>
+
+@if (_model == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.h4" GutterBottom="true">Edytuj Wyzwanie: @_model.Name</MudText>
+
+    <EditForm Model="@_model" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <MudCard>
+            <MudCardContent>
+                <MudTextField @bind-Value="_model.Name" For="@(() => _model.Name)" Label="Nazwa wyzwania" Variant="Variant.Outlined" Class="mb-3" />
+                <MudTextField @bind-Value="_model.Description" For="@(() => _model.Description)" Label="Opis" Variant="Variant.Outlined" Lines="4" Class="mb-3" />
+                <MudTextField @bind-Value="_model.UnitOfMeasure" For="@(() => _model.UnitOfMeasure)" Label="Jednostka miary" Variant="Variant.Outlined" Class="mb-3" />
+
+                @if (_categories != null)
+                {
+                    <MudSelect T="int" @bind-Value="_model.ChallengeCategoryId" For="@(() => _model.ChallengeCategoryId)" Label="Kategoria" Variant="Variant.Outlined">
+                        @foreach (var category in _categories)
+                        {
+                            <MudSelectItem Value="@category.ChallengeCategoryId">@category.Name</MudSelectItem>
+                        }
+                    </MudSelect>
+                }
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Zapisz Zmiany</MudButton>
+                <MudButton OnClick="@(() => NavigationManager.NavigateTo("/challenges-admin"))" Variant="Variant.Text" Color="Color.Secondary">Anuluj</MudButton>
+            </MudCardActions>
+        </MudCard>
+    </EditForm>
+}
+
+@code {
+    [Parameter]
+    public int ChallengeId { get; set; }
+
+    private ChallengeUpdateDto? _model;
+    private IEnumerable<ChallengeCategoryDto>? _categories;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var challengeDto = await ChallengeService.GetChallengeByIdAsync(ChallengeId);
+        if (challengeDto != null)
+        {
+            // Musimy ręcznie zmapować ChallengeDto na ChallengeUpdateDto
+            // W bardziej zaawansowanym projekcie użylibyśmy AutoMappera także w UI.
+            _model = new ChallengeUpdateDto
+                {
+                    Name = challengeDto.Name,
+                    Description = challengeDto.Description,
+                    UnitOfMeasure = challengeDto.UnitOfMeasure,
+                // Potrzebujemy ID kategorii, a nie jej nazwy. To jest uproszczenie.
+                // W idealnym świecie GetChallengeByIdAsync zwracałby też CategoryId.
+                    ChallengeCategoryId = 1 
+                };
+        }
+
+        _categories = await ChallengeService.GetAllCategoriesAsync();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (_model != null)
+        {
+            await ChallengeService.UpdateChallengeAsync(ChallengeId, _model);
+            Snackbar.Add("Zmiany zostały zapisane.", Severity.Success);
+            NavigationManager.NavigateTo("/challenges-admin");
+        }
+    }
+}

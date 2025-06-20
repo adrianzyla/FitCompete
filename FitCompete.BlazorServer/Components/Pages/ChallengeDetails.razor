@@ -1,0 +1,155 @@
+﻿@page "/challenges/{ChallengeId:int}"
+
+@using FitCompete.BlazorServer.Services
+@using FitCompete.SharedKernel.Dtos
+
+@inject IChallengeHttpService ChallengeService
+@inject ILogger<ChallengeDetails> Logger
+@inject ISnackbar Snackbar
+
+<PageTitle>Szczegóły Wyzwania</PageTitle>
+
+@if (_isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_challenge != null)
+{
+    <MudPaper Class="pa-4 mb-4" Elevation="2">
+        <MudText Typo="Typo.h3">@_challenge.Name</MudText>
+        <MudText Typo="Typo.subtitle1" Color="Color.Secondary" Class="mb-2">Stworzone przez: @_challenge.CreatedByUserName</MudText>
+        <MudChip T="string" Icon="@Icons.Material.Filled.Category" Color="Color.Info">@_challenge.CategoryName</MudChip>
+        <MudChip T="string" Icon="@Icons.Material.Filled.Straighten" Color="Color.Success">Jednostka: @_challenge.UnitOfMeasure</MudChip>
+    </MudPaper>
+
+    <MudCard>
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5">Opis</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudText>@_challenge.Description</MudText>
+        </MudCardContent>
+    </MudCard>
+
+    <MudCard Class="mt-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5">Ranking (Placeholder)</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <MudText>W tym miejscu w przyszłości pojawi się ranking wyników użytkowników.</MudText>
+            <img src="/images/ranking-placeholder.png" alt="Ranking placeholder" style="max-width: 100%; margin-top: 1rem;" />
+        </MudCardContent>
+    </MudCard>
+
+    <MudCard Class="mt-4">
+        <MudCardHeader>
+            <CardHeaderContent>
+                <MudText Typo="Typo.h5">Dodaj swój wynik</MudText>
+            </CardHeaderContent>
+        </MudCardHeader>
+        <MudCardContent>
+            <EditForm Model="@_newAttempt" OnValidSubmit="HandleValidSubmit">
+                <DataAnnotationsValidator />
+                <MudGrid>
+                    <MudItem xs="12" sm="6">
+                        <MudNumericField @bind-Value="_newAttempt.ResultValue"
+                                         For="@(() => _newAttempt.ResultValue)"
+                                         Label="Twój wynik"
+                                         Variant="Variant.Outlined" />
+                    </MudItem>
+                    <MudItem xs="12" sm="6">
+                        <MudTextField @bind-Value="_newAttempt.EvidenceUrl"
+                                      For="@(() => _newAttempt.EvidenceUrl)"
+                                      Label="Link do dowodu (opcjonalnie)"
+                                      Variant="Variant.Outlined" />
+                    </MudItem>
+                </MudGrid>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="mt-4" Disabled="@_isSubmitting">
+                    @if (_isSubmitting)
+                    {
+                        <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                        <MudText Class="ms-2">Zapisywanie...</MudText>
+                    }
+                    else
+                    {
+                        <MudText>Zapisz wynik</MudText>
+                    }
+                </MudButton>
+            </EditForm>
+        </MudCardContent>
+    </MudCard>
+}
+else
+{
+    <MudAlert Severity="Severity.Error">Nie znaleziono wyzwania o podanym ID.</MudAlert>
+}
+
+
+@code {
+    [Parameter]
+    public int ChallengeId { get; set; }
+
+    private ChallengeDto? _challenge;
+    private bool _isLoading = true;
+    private bool _isSubmitting = false;
+
+    private ChallengeAttemptRequestDto _newAttempt = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (_challenge == null || _challenge.ChallengeId != ChallengeId)
+        {
+            _isLoading = true;
+            Logger.LogInformation("Ładowanie szczegółów wyzwania o ID: {ChallengeId}", ChallengeId);
+            try
+            {
+                _challenge = await ChallengeService.GetChallengeByIdAsync(ChallengeId);
+
+                if (_challenge != null)
+                {
+                    _newAttempt = new ChallengeAttemptRequestDto { ChallengeId = _challenge.ChallengeId };
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Błąd podczas ładowania szczegółów wyzwania o ID: {ChallengeId}", ChallengeId);
+                _challenge = null;
+            }
+            finally
+            {
+                _isLoading = false;
+            }
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        _isSubmitting = true;
+        Logger.LogInformation("Wysyłanie wyniku dla wyzwania {ChallengeId}", _newAttempt.ChallengeId);
+
+        var result = await ChallengeService.AddAttemptAsync(_newAttempt);
+
+        if (result != null)
+        {
+            var message = "Wynik został pomyślnie zapisany!";
+            if (result.EarnedAchievement != null)
+            {
+                message += $" Gratulacje, zdobyłeś osiągnięcie: {result.EarnedAchievement.Name}!";
+            }
+            Snackbar.Add(message, Severity.Success, config => { config.VisibleStateDuration = 6000; });
+
+            _newAttempt = new ChallengeAttemptRequestDto { ChallengeId = this.ChallengeId };
+        }
+        else
+        {
+            Snackbar.Add("Wystąpił błąd podczas zapisywania wyniku. Sprawdź logi API.", Severity.Error);
+        }
+
+        _isSubmitting = false;
+        StateHasChanged();
+    }
+}

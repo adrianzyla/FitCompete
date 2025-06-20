@@ -1,0 +1,70 @@
+﻿@page "/challenges-admin"
+@inject IChallengeHttpService ChallengeService
+@inject IDialogService DialogService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Zarządzaj Wyzwaniami</PageTitle>
+
+<div class="d-flex justify-space-between align-center mb-4">
+    <MudText Typo="Typo.h4">Panel Zarządzania Wyzwaniami</MudText>
+    <MudButton Variant="Variant.Filled" Color="Color.Primary" StartIcon="@Icons.Material.Filled.Add" OnClick="@(() => NavigationManager.NavigateTo("/challenges/create"))">
+        Dodaj nowe wyzwanie
+    </MudButton>
+</div>
+
+<MudTable Items="@_challenges" Hover="true" Striped="true" Dense="true" @ref="_table">
+    <HeaderContent>
+        <MudTh>ID</MudTh>
+        <MudTh>Nazwa</MudTh>
+        <MudTh>Kategoria</MudTh>
+        <MudTh>Akcje</MudTh>
+    </HeaderContent>
+    <RowTemplate>
+        <MudTd DataLabel="ID">@context.ChallengeId</MudTd>
+        <MudTd DataLabel="Nazwa">@context.Name</MudTd>
+        <MudTd DataLabel="Kategoria">@context.CategoryName</MudTd>
+        <MudTd DataLabel="Akcje">
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Variant="Variant.Filled" Color="Color.Primary" Size="Size.Small" OnClick="@(() => NavigationManager.NavigateTo($"/challenges/edit/{context.ChallengeId}"))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Variant="Variant.Filled" Color="Color.Error" Size="Size.Small" OnClick="@(() => DeleteChallenge(context.ChallengeId))" />
+        </MudTd>
+    </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
+</MudTable>
+
+@code {
+    private IEnumerable<ChallengeDto>? _challenges;
+    private MudTable<ChallengeDto> _table = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadChallenges();
+    }
+
+    private async Task LoadChallenges()
+    {
+        _challenges = await ChallengeService.GetAllChallengesAsync();
+        await _table.ReloadServerData();
+    }
+
+    private async Task DeleteChallenge(int challengeId)
+    {
+        // Używamy prostszej, wbudowanej metody ShowMessageBox
+        var result = await DialogService.ShowMessageBox(
+            "Potwierdź usunięcie", // Tytuł okna
+            "Czy na pewno chcesz usunąć to wyzwanie? Tej operacji nie można cofnąć.", // Treść wiadomości
+            yesText: "Usuń!",
+            cancelText: "Anuluj"
+        );
+
+        // ShowMessageBox zwraca nullable bool (bool?). True, jeśli kliknięto "yes".
+        if (result == true)
+        {
+            await ChallengeService.DeleteChallengeAsync(challengeId);
+            Snackbar.Add("Wyzwanie usunięte.", Severity.Success);
+            await LoadChallenges(); // Odświeżamy tabelę
+        }
+    }
+}

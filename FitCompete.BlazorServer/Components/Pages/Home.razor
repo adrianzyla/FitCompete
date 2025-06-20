@@ -1,0 +1,87 @@
+﻿@page "/"
+@inject IChallengeHttpService ChallengeService
+
+<PageTitle>FitCompete - Strona Główna</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Witaj w FitCompete!</MudText>
+<MudText Class="mb-8">Twoje centrum rywalizacji i sportowych wyzwań. Sprawdź najnowsze statystyki i dołącz do gry!</MudText>
+
+@if (_isLoading)
+{
+    <MudGrid Justify="Justify.Center">
+        <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+    </MudGrid>
+}
+else
+{
+    <MudGrid Spacing="4">
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Class="d-flex flex-column align-center justify-center pa-4" Elevation="3" Height="150px">
+                <MudIcon Icon="@Icons.Material.Filled.FitnessCenter" Color="Color.Primary" Style="font-size: 3rem;" />
+                <MudText Typo="Typo.h5" Class="mt-2">@_totalChallenges</MudText>
+                <MudText Typo="Typo.subtitle1">Aktywnych Wyzwań</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Class="d-flex flex-column align-center justify-center pa-4" Elevation="3" Height="150px">
+                <MudIcon Icon="@Icons.Material.Filled.EmojiEvents" Color="Color.Warning" Style="font-size: 3rem;" />
+                <MudText Typo="Typo.h5">@_totalAttempts</MudText>
+                <MudText Typo="Typo.subtitle1">Podjętych Prób</MudText>
+            </MudPaper>
+        </MudItem>
+        <MudItem xs="12" sm="6" md="4">
+            <MudPaper Class="d-flex flex-column align-center justify-center pa-4" Elevation="3" Height="150px">
+                <MudIcon Icon="@Icons.Material.Filled.People" Color="Color.Success" Style="font-size: 3rem;" />
+                <MudText Typo="Typo.h5">@_totalUsers</MudText>
+                <MudText Typo="Typo.subtitle1">Użytkowników</MudText>
+            </MudPaper>
+        </MudItem>
+    </MudGrid>
+}
+
+<MudCard Class="mt-8">
+    <MudCardHeader>
+        <CardHeaderContent>
+            <MudText Typo="Typo.h5">Dołącz do rywalizacji już dziś!</MudText>
+        </CardHeaderContent>
+    </MudCardHeader>
+    <MudCardContent>
+        <MudText>Przeglądaj dostępne wyzwania, podejmuj próby i pnij się w rankingach. Pokaż, na co Cię stać!</MudText>
+    </MudCardContent>
+    <MudCardActions>
+        <MudButton Variant="Variant.Filled" Color="Color.Primary" Href="/challenges-list">Zobacz wszystkie wyzwania</MudButton>
+    </MudCardActions>
+</MudCard>
+
+
+@code {
+    private bool _isLoading = true;
+    private int _totalChallenges;
+    private int _totalAttempts;
+    private int _totalUsers;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // W prawdziwej aplikacji te dane pobralibyśmy z dedykowanych endpointów API.
+        // Dla uproszczenia, policzymy je na podstawie istniejących danych.
+        try
+        {
+            var challenges = await ChallengeService.GetAllChallengesAsync();
+            _totalChallenges = challenges?.Count() ?? 0;
+
+            // Te dane na razie będą zahardkodowane, bo nie mamy odpowiednich endpointów.
+            _totalAttempts = 15; // Placeholder
+            _totalUsers = 2; // Placeholder
+        }
+        catch
+        {
+            _totalChallenges = 0;
+            _totalAttempts = 0;
+            _totalUsers = 0;
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+}

@@ -1,0 +1,6 @@
+@FitCompete.Api_HostAddress = http://localhost:5189
+
+GET {{FitCompete.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,68 @@
+﻿@page "/challenges"
+@using FitCompete.BlazorWasm.Services
+@inject IChallengeHttpService ChallengeService
+@inject ILogger<Challenges> Logger
+@inject NavigationManager NavigationManager
+
+<PageTitle>Lista Wyzwań</PageTitle>
+
+<MudText Typo="Typo.h3" GutterBottom="true">Dostępne Wyzwania</MudText>
+<MudText Class="mb-4">Podejmij wyzwanie i sprawdź się w rywalizacji z innymi!</MudText>
+
+@if (_isLoading)
+{
+    <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+}
+else if (_challenges != null)
+{
+    <MudGrid Spacing="3">
+        @foreach (var challenge in _challenges)
+        {
+            <MudItem xs="12" sm="6" md="4">
+                <MudCard Elevation="3">
+                    <MudCardMedia Image="/images/challenge-placeholder.jpg" Height="150" />
+                    <MudCardContent>
+                        <MudText Typo="Typo.h5">@challenge.Name</MudText>
+                        <MudText Typo="Typo.body2">Kategoria: @challenge.CategoryName</MudText>
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton Variant="Variant.Text" Color="Color.Primary" OnClick="@(() => ViewDetails(challenge.ChallengeId))">
+                            Zobacz szczegóły
+                        </MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+        }
+    </MudGrid>
+}
+else
+{
+    <MudAlert Severity="Severity.Error">Nie udało się załadować wyzwań.</MudAlert>
+}
+
+@code {
+    private IEnumerable<FitCompete.SharedKernel.Dtos.ChallengeDto>? _challenges;
+    private bool _isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Logger.LogInformation("Ładowanie listy wyzwań.");
+        try
+        {
+            _challenges = await ChallengeService.GetAllChallengesAsync();
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Błąd podczas ładowania listy wyzwań.");
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void ViewDetails(int challengeId)
+    {
+        NavigationManager.NavigateTo($"/challenges/{challengeId}");
+    }
+}

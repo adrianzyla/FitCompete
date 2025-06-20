@@ -1,0 +1,62 @@
+﻿@page "/challenges/create"
+@inject IChallengeHttpService ChallengeService
+@inject NavigationManager NavigationManager
+@inject ISnackbar Snackbar
+
+<PageTitle>Nowe Wyzwanie</PageTitle>
+
+<MudText Typo="Typo.h4" GutterBottom="true">Stwórz Nowe Wyzwanie</MudText>
+
+<EditForm Model="@_model" OnValidSubmit="HandleValidSubmit">
+    <DataAnnotationsValidator />
+    <MudCard>
+        <MudCardContent>
+            <MudTextField @bind-Value="_model.Name" For="@(() => _model.Name)" Label="Nazwa wyzwania" Variant="Variant.Outlined" Class="mb-3" />
+            <MudTextField @bind-Value="_model.Description" For="@(() => _model.Description)" Label="Opis" Variant="Variant.Outlined" Lines="4" Class="mb-3" />
+            <MudTextField @bind-Value="_model.UnitOfMeasure" For="@(() => _model.UnitOfMeasure)" Label="Jednostka miary (np. sekundy, kg, metry)" Variant="Variant.Outlined" Class="mb-3" />
+
+            @if (_categories != null)
+            {
+                <MudSelect T="int" @bind-Value="_model.ChallengeCategoryId" For="@(() => _model.ChallengeCategoryId)" Label="Kategoria" Variant="Variant.Outlined">
+                    @foreach (var category in _categories)
+                    {
+                        <MudSelectItem Value="@category.ChallengeCategoryId">@category.Name</MudSelectItem>
+                    }
+                </MudSelect>
+            }
+            else
+            {
+                <MudProgressCircular Indeterminate="true" Size="Size.Small" />
+            }
+
+        </MudCardContent>
+        <MudCardActions>
+            <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Stwórz Wyzwanie</MudButton>
+            <MudButton OnClick="@(() => NavigationManager.NavigateTo("/challenges-admin"))" Variant="Variant.Text" Color="Color.Secondary">Anuluj</MudButton>
+        </MudCardActions>
+    </MudCard>
+</EditForm>
+
+@code {
+    private ChallengeCreateDto _model = new();
+    private IEnumerable<ChallengeCategoryDto>? _categories;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _categories = await ChallengeService.GetAllCategoriesAsync();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        var createdChallenge = await ChallengeService.CreateChallengeAsync(_model);
+        if (createdChallenge != null)
+        {
+            Snackbar.Add("Wyzwanie zostało pomyślnie utworzone!", Severity.Success);
+            NavigationManager.NavigateTo("/challenges-admin");
+        }
+        else
+        {
+            Snackbar.Add("Wystąpił błąd podczas tworzenia wyzwania.", Severity.Error);
+        }
+    }
+}
