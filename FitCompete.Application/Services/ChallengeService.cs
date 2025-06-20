@@ -16,46 +16,44 @@ namespace FitCompete.Application.Services
             _mapper = mapper;
         }
 
-        // --- Metody READ (bez zmian) ---
+
         public async Task<IEnumerable<ChallengeDto>> GetAllChallengesAsync()
         {
-            var challenges = await _unitOfWork.Repository<Challenge>().GetAllAsync();
+            var challenges = await _unitOfWork.Repository<Challenge>().GetAllAsync(
+            );
             return _mapper.Map<IEnumerable<ChallengeDto>>(challenges);
         }
 
+
         public async Task<ChallengeDto?> GetChallengeByIdAsync(int id)
         {
-            var challenge = await _unitOfWork.Repository<Challenge>().GetByIdAsync(id);
+            var challenges = await _unitOfWork.Repository<Challenge>().FindAsync(c => c.ChallengeId == id);
+            var challenge = challenges.FirstOrDefault();
+
             if (challenge == null) return null;
 
-            var category = await _unitOfWork.Repository<ChallengeCategory>().GetByIdAsync(challenge.ChallengeCategoryId);
-            var user = await _unitOfWork.Repository<User>().GetByIdAsync(challenge.CreatedByUserId);
+            if (challenge.ChallengeCategory == null)
+                challenge.ChallengeCategory = await _unitOfWork.Repository<ChallengeCategory>().GetByIdAsync(challenge.ChallengeCategoryId);
 
-            var challengeDto = _mapper.Map<ChallengeDto>(challenge);
-            challengeDto.CategoryName = category?.Name ?? "N/A";
-            challengeDto.CreatedByUserName = user?.UserName ?? "N/A";
+            if (challenge.CreatedByUser == null)
+                challenge.CreatedByUser = await _unitOfWork.Repository<User>().GetByIdAsync(challenge.CreatedByUserId);
 
-            return challengeDto;
+            return _mapper.Map<ChallengeDto>(challenge);
         }
 
-        // --- NOWA METODA: CREATE ---
         public async Task<ChallengeDto> CreateChallengeAsync(ChallengeCreateDto challengeDto)
         {
             var challenge = _mapper.Map<Challenge>(challengeDto);
 
-            // Ustawiamy wartości, których nie ma w DTO
             challenge.CreatedDate = DateTime.UtcNow;
-            // W prawdziwej aplikacji ID użytkownika wzięlibyśmy z tokena. Na razie hardkodujemy admina (ID=1)
             challenge.CreatedByUserId = 1;
 
             await _unitOfWork.Repository<Challenge>().AddAsync(challenge);
             await _unitOfWork.CompleteAsync();
 
-            // Zwracamy pełne DTO nowo utworzonego obiektu
             return _mapper.Map<ChallengeDto>(challenge);
         }
 
-        // --- NOWA METODA: UPDATE ---
         public async Task UpdateChallengeAsync(int challengeId, ChallengeUpdateDto challengeDto)
         {
             var challengeToUpdate = await _unitOfWork.Repository<Challenge>().GetByIdAsync(challengeId);
@@ -64,7 +62,6 @@ namespace FitCompete.Application.Services
                 throw new KeyNotFoundException("Wyzwanie o podanym ID nie istnieje.");
             }
 
-            // AutoMapper zaktualizuje istniejący obiekt challengeToUpdate danymi z challengeDto
             _mapper.Map(challengeDto, challengeToUpdate);
 
             _unitOfWork.Repository<Challenge>().Update(challengeToUpdate);
@@ -76,12 +73,36 @@ namespace FitCompete.Application.Services
             var challengeToDelete = await _unitOfWork.Repository<Challenge>().GetByIdAsync(challengeId);
             if (challengeToDelete == null)
             {
-                return false; // Nie znaleziono, nie usunięto
+                return false; 
             }
 
             _unitOfWork.Repository<Challenge>().Remove(challengeToDelete);
             await _unitOfWork.CompleteAsync();
-            return true; // Pomyślnie usunięto
+            return true;
+        }
+        public async Task<IEnumerable<RankingEntryDto>> GetChallengeRankingAsync(int challengeId)
+        {
+            var challenge = await _unitOfWork.Repository<Challenge>().GetByIdAsync(challengeId);
+            if (challenge == null)
+            {
+                return new List<RankingEntryDto>(); // Zwróć pustą listę, jeśli wyzwanie nie istnieje
+            }
+
+            var attempts = await _unitOfWork.Repository<ChallengeAttempt>().FindAsync(a => a.ChallengeId == challengeId);
+
+            var userIds = attempts.Select(a => a.UserId).Distinct();
+            var users = (await _unitOfWork.Repository<User>().FindAsync(u => userIds.Contains(u.UserId))).ToDictionary(u => u.UserId, u => u.UserName);
+
+            var sortedAttempts = attempts.OrderBy(a => a.ResultValue);
+
+            var ranking = sortedAttempts.Select(attempt => new RankingEntryDto
+            {
+                UserName = users.ContainsKey(attempt.UserId) ? users[attempt.UserId] : "Nieznany",
+                ResultValue = attempt.ResultValue,
+                AttemptDate = attempt.AttemptDate
+            }).ToList();
+
+            return ranking;
         }
     }
 }

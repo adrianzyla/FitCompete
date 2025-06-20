@@ -31,5 +31,19 @@ namespace FitCompete.Api.Controllers
             await _achievementService.DeleteAchievementAsync(id);
             return NoContent();
         }
+
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, AchievementUpdateDto dto)
+        {
+            try
+            {
+                await _achievementService.UpdateAchievementAsync(id, dto);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+        }
     }
 }

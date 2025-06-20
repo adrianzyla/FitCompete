@@ -1,0 +1,60 @@
+﻿@page "/challenges/{ChallengeId:int}/attempt"
+@inject IChallengeHttpService AppService
+@inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
+
+<PageTitle>Podejmij Wyzwanie</PageTitle>
+
+@if (_challenge == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else
+{
+    <MudText Typo="Typo.h4">Podejmujesz wyzwanie: @_challenge.Name</MudText>
+    <MudCard Class="mt-4">
+        <EditForm Model="_newAttempt" OnValidSubmit="HandleValidSubmit">
+            <DataAnnotationsValidator />
+            <MudCardContent>
+                <MudGrid>
+                    <MudItem xs="12"><MudTextField @bind-Value="_newAttempt.UserName" For="@(() => _newAttempt.UserName)" Label="Twoje imię / Nick" Required="true" /></MudItem>
+                    <MudItem xs="12"><MudNumericField @bind-Value="_newAttempt.ResultValue" For="@(() => _newAttempt.ResultValue)" Label="Twój wynik" Required="true" /></MudItem>
+                    <MudItem xs="12"><MudTextField @bind-Value="_newAttempt.EvidenceUrl" For="@(() => _newAttempt.EvidenceUrl)" Label="Link do dowodu (opcjonalnie)" /></MudItem>
+                </MudGrid>
+            </MudCardContent>
+            <MudCardActions>
+                <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary">Zapisz wynik</MudButton>
+                <MudButton OnClick="@(() => NavigationManager.NavigateTo($"/challenges/{ChallengeId}"))" Variant="Variant.Text">Anuluj</MudButton>
+            </MudCardActions>
+        </EditForm>
+    </MudCard>
+}
+
+@code {
+    [Parameter] public int ChallengeId { get; set; }
+
+    private ChallengeDto? _challenge;
+    private ChallengeAttemptRequestDto _newAttempt = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        _challenge = await AppService.GetChallengeByIdAsync(ChallengeId);
+        if (_challenge != null)
+        {
+            _newAttempt.ChallengeId = _challenge.ChallengeId;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        // Logika zapisu pozostaje taka sama
+        var result = await AppService.AddAttemptAsync(_newAttempt);
+        if (result != null)
+        {
+            Snackbar.Add("Wynik zapisany!", Severity.Success);
+            NavigationManager.NavigateTo($"/challenges/{ChallengeId}"); // Wracamy do szczegółów
+        } else {
+            Snackbar.Add("Błąd zapisu.", Severity.Error);
+        }
+    }
+}

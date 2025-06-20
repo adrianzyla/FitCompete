@@ -18,82 +18,85 @@ namespace FitCompete.Application.Services
             _mapper = mapper;
         }
 
-        public async Task<ChallengeAttemptResponseDto> AddAttemptAsync(ChallengeAttemptRequestDto attemptDto, int userId)
+        public async Task<ChallengeAttemptResponseDto> AddAttemptAsync(ChallengeAttemptRequestDto attemptDto, int fallbackUserId)
         {
-            // 1. Sprawdź, czy użytkownik i wyzwanie istnieją
-            var user = await _unitOfWork.Repository<User>().GetByIdAsync(userId);
             var challenge = await _unitOfWork.Repository<Challenge>().GetByIdAsync(attemptDto.ChallengeId);
-
-            if (user == null || challenge == null)
+            if (challenge == null)
             {
-                throw new KeyNotFoundException("Użytkownik lub wyzwanie nie istnieje.");
+                throw new KeyNotFoundException("Wyzwanie o podanym ID nie istnieje.");
             }
 
-            // 2. Stwórz i zapisz nowy wynik
+            //Znajdź użytkownika po nazwie. Jeśli nie istnieje, stwórz nowego.
+            User? user = (await _unitOfWork.Repository<User>().FindAsync(u => u.UserName == attemptDto.UserName)).FirstOrDefault();
+
+            if (user == null)
+            {
+                user = new User
+                {
+                    UserName = attemptDto.UserName,
+                    Email = $"{attemptDto.UserName.ToLower()}@guest.fitcompete.com", 
+                    HashedPassword = "guest_password_placeholder",
+                    RegistrationDate = DateTime.UtcNow,
+                    IsAdmin = false
+                };
+                await _unitOfWork.Repository<User>().AddAsync(user);
+                await _unitOfWork.CompleteAsync();
+            }
+
             var newAttempt = new ChallengeAttempt
             {
-                UserId = userId,
+                UserId = user.UserId,
                 ChallengeId = attemptDto.ChallengeId,
                 ResultValue = attemptDto.ResultValue.Value,
                 EvidenceUrl = attemptDto.EvidenceUrl,
                 AttemptDate = DateTime.UtcNow
             };
-
             await _unitOfWork.Repository<ChallengeAttempt>().AddAsync(newAttempt);
 
-            // 3. Sprawdź, czy za to wyzwanie jest osiągnięcie
-            var achievement = (await _unitOfWork.Repository<Achievement>()
-                                   .FindAsync(a => a.ChallengeId == challenge.ChallengeId))
-                                   .FirstOrDefault();
-
+            var achievement = (await _unitOfWork.Repository<Achievement>().FindAsync(a => a.ChallengeId == challenge.ChallengeId)).FirstOrDefault();
             AchievementDto? earnedAchievementDto = null;
             if (achievement != null)
             {
                 bool conditionMet = false;
-                // Sprawdzamy, czy warunek został spełniony
                 switch (achievement.Condition)
                 {
                     case AchievementCondition.LessThan:
-                        if (newAttempt.ResultValue < achievement.ThresholdValue)
-                            conditionMet = true;
+                        if (newAttempt.ResultValue < achievement.ThresholdValue) conditionMet = true;
                         break;
                     case AchievementCondition.GreaterThan:
-                        if (newAttempt.ResultValue > achievement.ThresholdValue)
-                            conditionMet = true;
+                        if (newAttempt.ResultValue > achievement.ThresholdValue) conditionMet = true;
                         break;
                 }
-
-                // Jeśli warunek jest spełniony, sprawdzamy dalej
                 if (conditionMet)
                 {
-                    // 4. Sprawdź, czy użytkownik już ma to osiągnięcie
-                    var hasAchievement = (await _unitOfWork.Repository<UserAchievement>()
-                                              .FindAsync(ua => ua.UserId == userId && ua.AchievementId == achievement.AchievementId))
-                                              .Any();
-
+                    var hasAchievement = (await _unitOfWork.Repository<UserAchievement>().FindAsync(ua => ua.UserId == user.UserId && ua.AchievementId == achievement.AchievementId)).Any();
                     if (!hasAchievement)
                     {
-                        // 5. Jeśli nie ma, przyznaj je!
-                        var newUserAchievement = new UserAchievement
-                        {
-                            UserId = userId,
-                            AchievementId = achievement.AchievementId,
-                            DateEarned = DateTime.UtcNow
-                        };
+                        var newUserAchievement = new UserAchievement { UserId = user.UserId, AchievementId = achievement.AchievementId, DateEarned = DateTime.UtcNow };
                         await _unitOfWork.Repository<UserAchievement>().AddAsync(newUserAchievement);
                         earnedAchievementDto = _mapper.Map<AchievementDto>(achievement);
                     }
                 }
             }
 
-            // 6. Zapisz wszystkie zmiany w jednej transakcji
             await _unitOfWork.CompleteAsync();
 
-            // 7. Zwróć odpowiedź
             var response = _mapper.Map<ChallengeAttemptResponseDto>(newAttempt);
             response.EarnedAchievement = earnedAchievementDto;
-
             return response;
+        }
+
+        public async Task<bool> DeleteAttemptAsync(int attemptId)
+        {
+            var attempt = await _unitOfWork.Repository<ChallengeAttempt>().GetByIdAsync(attemptId);
+            if (attempt == null)
+            {
+                return false; 
+            }
+
+            _unitOfWork.Repository<ChallengeAttempt>().Remove(attempt);
+            await _unitOfWork.CompleteAsync();
+            return true; 
         }
     }
 }

@@ -1,4 +1,4 @@
-using FitCompete.Api.Controllers; // Potrzebne do BaseApiController
+using FitCompete.Api.Controllers; 
 using FitCompete.Application.Common.Mappings;
 using FitCompete.Application.Services;
 using FitCompete.BlazorServer.Services;
@@ -12,7 +12,6 @@ using Serilog.Events;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Konfiguracja Serilog dla Blazor Server
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
     .Enrich.FromLogContext()
@@ -27,7 +26,6 @@ Log.Logger = new LoggerConfiguration()
 
 builder.Host.UseSerilog();
 
-// Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -36,9 +34,7 @@ builder.Services.AddMudServices();
 
 builder.Services.AddHttpClient<IChallengeHttpService, ChallengeHttpService>(client =>
 {
-    // Tutaj podajemy adres naszego API.
-    // WeŸ go z w³aœciwoœci projektu FitCompete.Api -> Debug -> Ogólne -> Adres URL aplikacji
-    client.BaseAddress = new Uri("https://localhost:7142"); // <-- ZMIEÑ PORT, JEŒLI JEST INNY!
+    client.BaseAddress = new Uri("https://localhost:7142"); 
 });
 
 
@@ -49,11 +45,9 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(FitCompete.Infrastructure.Persistence.Repositories.GenericRepository<>));
 
-// Rejestracja serwisów aplikacyjnych
 builder.Services.AddScoped<IChallengeService, ChallengeService>();
 builder.Services.AddScoped<IChallengeAttemptService, ChallengeAttemptService>();
 
-// Rejestracja AutoMappera
 builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
 
 var app = builder.Build();

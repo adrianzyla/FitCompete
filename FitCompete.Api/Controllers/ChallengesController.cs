@@ -85,5 +85,18 @@ namespace FitCompete.Api.Controllers
             // Zwracamy kod 204 No Content, co jest standardem dla udanych operacji DELETE
             return NoContent();
         }
+        // GET /api/challenges/{id}/ranking
+        [HttpGet("{id}/ranking")]
+        public async Task<IActionResult> GetRanking(int id)
+        {
+            _logger.LogInformation("API Endpoint: Getting ranking for challenge ID: {ChallengeId}", id);
+
+            // Kontroler woła serwis, nie robi nic więcej.
+            var ranking = await _challengeService.GetChallengeRankingAsync(id);
+
+            // Serwis zwraca pustą listę, jeśli wyzwanie nie istnieje,
+            // więc po prostu zwracamy wynik.
+            return Ok(ranking);
+        }
     }
 }

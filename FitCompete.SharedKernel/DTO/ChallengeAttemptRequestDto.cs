@@ -13,5 +13,8 @@ namespace FitCompete.SharedKernel.Dtos
 
         [Url(ErrorMessage = "Podany link do dowodu jest nieprawidłowy.")]
         public string? EvidenceUrl { get; set; }
+
+        [Required(ErrorMessage = "Imię jest wymagane.")]
+        public string UserName { get; set; } = string.Empty;
     }
 }

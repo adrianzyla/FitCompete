@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Mvc;
 using FitCompete.SharedKernel.Dtos;
 using FitCompete.Application.Services;
+using FitCompete.Domain.Entities;
+using FitCompete.Domain.Interfaces;
 
 
 
@@ -21,18 +23,14 @@ namespace FitCompete.Api.Controllers
         [HttpPost]
         public async Task<IActionResult> PostAttempt(ChallengeAttemptRequestDto attemptDto)
         {
-            // W prawdziwej aplikacji ID użytkownika wzięlibyśmy z tokena JWT po zalogowaniu.
-            // Na razie dla testów użyjemy zahardkodowanego ID użytkownika 'Rocky' (ID=2)
-            var userId = 2;
-
-            _logger.LogInformation("User {UserId} is submitting an attempt for challenge {ChallengeId}", userId, attemptDto.ChallengeId);
+            _logger.LogInformation("User {UserName} is submitting an attempt for challenge {ChallengeId}", attemptDto.UserName, attemptDto.ChallengeId);
 
             try
             {
-                var result = await _attemptService.AddAttemptAsync(attemptDto, userId);
+                var result = await _attemptService.AddAttemptAsync(attemptDto, 0); 
                 if (result.EarnedAchievement != null)
                 {
-                    _logger.LogInformation("User {UserId} has earned a new achievement: {AchievementName}", userId, result.EarnedAchievement.Name);
+                    _logger.LogInformation("User {UserName} has earned a new achievement: {AchievementName}", attemptDto.UserName, result.EarnedAchievement.Name);
                 }
                 return Ok(result);
             }
@@ -43,9 +41,10 @@ namespace FitCompete.Api.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "An error occurred while posting an attempt for user {UserId}", userId);
+                _logger.LogError(ex, "An error occurred while posting an attempt for user");
                 return StatusCode(500, "Wystąpił wewnętrzny błąd serwera.");
             }
         }
+
     }
 }

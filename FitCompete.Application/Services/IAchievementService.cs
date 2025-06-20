@@ -10,5 +10,6 @@ namespace FitCompete.Application.Services
         Task<AchievementDto?> GetAchievementByIdAsync(int id);
         Task<AchievementDto> CreateAchievementAsync(AchievementCreateDto achievementDto);
         Task DeleteAchievementAsync(int id);
+        Task<AchievementDto> UpdateAchievementAsync(int id, AchievementUpdateDto achievementDto);
     }
 }

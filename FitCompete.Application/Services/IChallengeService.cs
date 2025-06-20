@@ -9,5 +9,6 @@ namespace FitCompete.Application.Services
         Task<ChallengeDto> CreateChallengeAsync(ChallengeCreateDto challengeDto);
         Task UpdateChallengeAsync(int challengeId, ChallengeUpdateDto challengeDto);
         Task<bool> DeleteChallengeAsync(int challengeId);
+        Task<IEnumerable<RankingEntryDto>> GetChallengeRankingAsync(int challengeId);
     }
 }

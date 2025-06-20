@@ -1,19 +1,20 @@
 ﻿@page "/achievements-admin"
 @inject IChallengeHttpService AppService
 @inject ISnackbar Snackbar
+@inject NavigationManager NavigationManager
 
 <PageTitle>Zarządzaj Osiągnięciami</PageTitle>
 <MudText Typo="Typo.h4" GutterBottom="true">Panel Zarządzania Osiągnięciami</MudText>
 
-<MudPaper Class="pa-4 mb-4">
-    <EditForm Model="_newAchievement" OnValidSubmit="HandleCreateAchievement">
+<MudPaper Class="pa-4 mb-4" Elevation="3">
+    <EditForm Model="@_newAchievement" OnValidSubmit="HandleCreateAchievement">
         <DataAnnotationsValidator />
         <MudGrid>
-            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_newAchievement.Name" For="@(() => _newAchievement.Name)" Label="Nazwa Osiągnięcia" /></MudItem>
-            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_newAchievement.BadgeImageUrl" For="@(() => _newAchievement.BadgeImageUrl)" Label="URL obrazka odznaki" /></MudItem>
-            <MudItem xs="12"><MudTextField @bind-Value="_newAchievement.Description" For="@(() => _newAchievement.Description)" Label="Opis" Lines="3" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_newAchievement.Name" For="@(() => _newAchievement.Name)" Label="Nazwa Osiągnięcia" Required="true" /></MudItem>
+            <MudItem xs="12" sm="6"><MudTextField @bind-Value="_newAchievement.BadgeImageUrl" For="@(() => _newAchievement.BadgeImageUrl)" Label="URL obrazka odznaki" Required="true" /></MudItem>
+            <MudItem xs="12"><MudTextField @bind-Value="_newAchievement.Description" For="@(() => _newAchievement.Description)" Label="Opis" Lines="3" Required="true" /></MudItem>
             <MudItem xs="12" sm="4">
-                <MudSelect T="int" @bind-Value="_newAchievement.ChallengeId" For="@(() => _newAchievement.ChallengeId)" Label="Powiązane wyzwanie">
+                <MudSelect T="int" @bind-Value="_newAchievement.ChallengeId" For="@(() => _newAchievement.ChallengeId)" Label="Powiązane wyzwanie" Required="true">
                     @if (_challenges != null)
                     {
                         @foreach (var challenge in _challenges)
@@ -24,30 +25,36 @@
                 </MudSelect>
             </MudItem>
             <MudItem xs="12" sm="4">
-                <MudSelect T="FitCompete.SharedKernel.Enums.AchievementCondition" @bind-Value="_newAchievement.Condition" For="@(() => _newAchievement.Condition)" Label="Warunek">
-                    <MudSelectItem Value="AchievementCondition.LessThan">Mniej niż</MudSelectItem>
-                    <MudSelectItem Value="AchievementCondition.GreaterThan">Więcej niż</MudSelectItem>
+                <MudSelect T="AchievementCondition" @bind-Value="_newAchievement.Condition" For="@(() => _newAchievement.Condition)" Label="Warunek" Required="true">
+                    <MudSelectItem T="AchievementCondition" Value="AchievementCondition.LessThan">Mniej niż</MudSelectItem>
+                    <MudSelectItem T="AchievementCondition" Value="AchievementCondition.GreaterThan">Więcej niż</MudSelectItem>
                 </MudSelect>
             </MudItem>
-            <MudItem xs="12" sm="4"><MudNumericField @bind-Value="_newAchievement.ThresholdValue" For="@(() => _newAchievement.ThresholdValue)" Label="Wartość progowa" /></MudItem>
+            <MudItem xs="12" sm="4"><MudNumericField @bind-Value="_newAchievement.ThresholdValue" For="@(() => _newAchievement.ThresholdValue)" Label="Wartość progowa" Required="true" /></MudItem>
         </MudGrid>
         <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="mt-4">Dodaj Osiągnięcie</MudButton>
     </EditForm>
 </MudPaper>
 
-<MudTable Items="@_achievements" Hover="true">
+<MudTable Items="@_achievements" Hover="true" Dense="true">
     <HeaderContent>
         <MudTh>Nazwa</MudTh>
         <MudTh>Wyzwanie</MudTh>
         <MudTh>Warunek</MudTh>
-        <MudTh></MudTh>
+        <MudTh>Akcje</MudTh>
     </HeaderContent>
     <RowTemplate>
         <MudTd DataLabel="Nazwa">@context.Name</MudTd>
-        <MudTd DataLabel="Wyzwanie">@(_challenges?.FirstOrDefault(c => c.ChallengeId == context.ChallengeId)?.Name)</MudTd>
+        <MudTd DataLabel="Wyzwanie">@(_challenges?.FirstOrDefault(c => c.ChallengeId == context.ChallengeId)?.Name ?? "Brak")</MudTd>
         <MudTd DataLabel="Warunek">@context.Condition @context.ThresholdValue</MudTd>
-        <MudTd><MudIconButton Icon="@Icons.Material.Filled.Delete" OnClick="@(async () => await DeleteAchievement(context.AchievementId))" /></MudTd>
+        <MudTd DataLabel="Akcje">
+            <MudIconButton Icon="@Icons.Material.Filled.Edit" Size="Size.Small" Color="Color.Primary" OnClick="@(() => NavigationManager.NavigateTo($"/achievements/edit/{context.AchievementId}"))" />
+            <MudIconButton Icon="@Icons.Material.Filled.Delete" Size="Size.Small" Color="Color.Error" OnClick="@(async () => await DeleteAchievement(context.AchievementId))" />
+        </MudTd>
     </RowTemplate>
+    <PagerContent>
+        <MudTablePager />
+    </PagerContent>
 </MudTable>
 
 @code {

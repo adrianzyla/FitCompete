@@ -47,5 +47,20 @@ namespace FitCompete.Application.Services
             var achievement = await _unitOfWork.Repository<Achievement>().GetByIdAsync(id);
             return _mapper.Map<AchievementDto>(achievement);
         }
+
+        public async Task<AchievementDto> UpdateAchievementAsync(int id, AchievementUpdateDto achievementDto)
+        {
+            var achievement = await _unitOfWork.Repository<Achievement>().GetByIdAsync(id);
+            if (achievement == null)
+            {
+                throw new KeyNotFoundException("Achievement not found");
+            }
+
+            _mapper.Map(achievementDto, achievement);
+            _unitOfWork.Repository<Achievement>().Update(achievement);
+            await _unitOfWork.CompleteAsync();
+
+            return _mapper.Map<AchievementDto>(achievement);
+        }
     }
 }

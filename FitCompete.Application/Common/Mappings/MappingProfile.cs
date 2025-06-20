@@ -18,6 +18,7 @@ namespace FitCompete.Application.Common.Mappings
             CreateMap<ChallengeCreateDto, Challenge>();
             CreateMap<ChallengeUpdateDto, Challenge>();
             CreateMap<AchievementCreateDto, Achievement>();
+            CreateMap<AchievementUpdateDto, Achievement>();
         }
     }
 }

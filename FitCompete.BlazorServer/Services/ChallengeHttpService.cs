@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using System.Net.Http.Json;
 
+
 namespace FitCompete.BlazorServer.Services
 {
     public class ChallengeHttpService : IChallengeHttpService
@@ -104,7 +105,6 @@ namespace FitCompete.BlazorServer.Services
 
         public async Task<IEnumerable<ChallengeCategoryDto>?> GetAllCategoriesAsync()
         {
-            // Potrzebujemy endpointu dla kategorii. Dodamy go za chwilę do API.
             try
             {
                 return await _httpClient.GetFromJsonAsync<IEnumerable<ChallengeCategoryDto>>("api/challengecategories");
@@ -130,11 +130,41 @@ namespace FitCompete.BlazorServer.Services
             }
             catch (Exception ex) { _logger.LogError(ex, "Error creating achievement"); return null; }
         }
-
+        public async Task<AchievementDto?> GetAchievementByIdAsync(int id)
+        {
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<AchievementDto>($"api/achievements/{id}");
+            }
+            catch (Exception ex) { _logger.LogError(ex, "Error fetching achievement with ID {id}.", id); return null; }
+        }
         public async Task DeleteAchievementAsync(int id)
         {
             try { await _httpClient.DeleteAsync($"api/achievements/{id}"); }
             catch (Exception ex) { _logger.LogError(ex, "Error deleting achievement"); }
         }
+
+        public async Task UpdateAchievementAsync(int id, AchievementUpdateDto dto)
+        {
+            try
+            {
+                await _httpClient.PutAsJsonAsync($"api/achievements/{id}", dto);
+            }
+            catch (Exception ex) { _logger.LogError(ex, "Error updating achievement {id}.", id); }
+        }
+
+        public async Task<IEnumerable<RankingEntryDto>?> GetRankingAsync(int challengeId)
+        {
+            try
+            {
+                return await _httpClient.GetFromJsonAsync<IEnumerable<RankingEntryDto>>($"api/challenges/{challengeId}/ranking");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching ranking for challenge {id}.", challengeId);
+                return null;
+            }
+        }
+
     }
 }
